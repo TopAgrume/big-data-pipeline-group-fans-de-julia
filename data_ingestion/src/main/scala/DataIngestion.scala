@@ -9,6 +9,7 @@ object DataIngestion {
       .appName("DataIngestion")
       .master("local[*]")  // Use all cores
       .getOrCreate()
+    spark.sparkContext.setLogLevel("WARN") // Disable for debugging
 
     val dataPath = "ecommerce_data_with_trends.csv"
 
