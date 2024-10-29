@@ -18,3 +18,11 @@ resolvers ++= Seq(
 //ThisBuild / dependencyOverrides += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
 mainClass in Compile := Some("DataIngestion")
+
+// Avant de build, installer java11 openjdk
+// sudo pacman -S jdk11-openjdk
+javaHome := Some(file("/usr/lib/jvm/java-11-openjdk"))
+
+fork in run := true
+classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+
