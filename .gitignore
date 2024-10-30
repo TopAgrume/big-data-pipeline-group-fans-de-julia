@@ -1,6 +1,14 @@
 # FAT CSV FILE
 ecommerce_data_with_trends.csv
 
+# Generated parquet dataset
+cleaned_ecommerce_data.parquet
+
+Scala intellij IDEA
+.bsp
+.idea
+project
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
