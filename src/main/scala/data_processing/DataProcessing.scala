@@ -1,5 +1,6 @@
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.DataFrame
+package data_processing
+
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object DataProcessing {
 
