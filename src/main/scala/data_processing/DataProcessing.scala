@@ -4,49 +4,23 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object DataProcessing {
 
-  def main(args: Array[String]): Unit = {
-
-    val spark = SparkSession.builder()
-      .appName("DataIngestion")
-      .master("local[*]") // Use all cores
-      .getOrCreate()
-    spark.sparkContext.setLogLevel("WARN") // Disable for debugging
-
-    val dataPath = "ecommerce_data_with_trends.csv"
-
-    val rawDf: DataFrame = loadData(spark, dataPath)
-    rawDf.show(10)
-
+  def getCleanData(session: SparkSession, rawDf: DataFrame): DataFrame = {
     rawDf.createOrReplaceTempView("raw_transactions")
+    val cleanedDf = cleanData(session)
 
-    val cleanedDf = cleanData(spark)
-    cleanedDf.createOrReplaceTempView("cleaned_transactions")
     cleanedDf.show(10)
 
     cleanedDf.createOrReplaceTempView("cleaned_transactions")
-    getTestMetrics(spark)
+    getTestMetrics(session)
+    cleanedDf
+  }
 
-    // Save processed data to a Parquet file
+  def saveIntoFile(cleanedDf: DataFrame, filename: String): Unit = {
     cleanedDf.write
       .mode("overwrite")
       .partitionBy("transaction_date", "main_category")
-      .parquet("cleaned_ecommerce_data.parquet")
-
-    spark.stop()
-  }
-
-  /**
-   * A function to load data from a CSV file into a DataFrame.
-   *
-   * @param spark - The active Spark session
-   * @param path  - Path to the data file
-   * @return DataFrame containing the loaded data
-   */
-  def loadData(spark: SparkSession, path: String): DataFrame = {
-    spark.read
-      .option("header", "true")
-      .option("inferSchema", "true")
-      .csv(path)
+      //.parquet("cleaned_ecommerce_data.parquet")
+      .parquet(filename)
   }
 
   /**
