@@ -1,5 +1,6 @@
 import data_ingestion.DataIngestion
-import data_processing.DataProcessing.{getCleanData, getTestMetrics, saveIntoFile}
+import data_processing.DataProcessing.{getCleanData, saveIntoFile}
+import nosql_processing.SqlAnalytics.showSqlAnalytics
 import org.apache.spark.sql.SparkSession
 
 object Main {
@@ -10,20 +11,24 @@ object Main {
       .getOrCreate()
     session.sparkContext.setLogLevel("WARN") // Disable for debugging
 
-    // ---- LOAD DATAS ----
+    // ---- LOAD DATA ----
     val dataPath = "ecommerce_data_with_trends.csv"
     val rawDf = DataIngestion.loadData(session, dataPath)
     // --------------------
 
     rawDf.show(10)
 
-    // --- PROCESS DATAS ---
+    // --- PROCESS DATA ---
     val cleanedDf = getCleanData(session, rawDf)
     // ---------------------
 
-    // ---- SAVE DATAS ----
-    saveIntoFile(cleanedDf, "cleaned_ecommerce_data.parquet")
+    // ---- SAVE DATA ----
+    // saveIntoFile(cleanedDf, "cleaned_ecommerce_data.parquet")
     // --------------------
+
+    // - DATA SQL ANALYTICS -
+    showSqlAnalytics(session)
+    // ----------------------
 
     session.stop()
   }
