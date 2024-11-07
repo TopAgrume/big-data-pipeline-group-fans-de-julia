@@ -1,5 +1,5 @@
 import data_ingestion.DataIngestion
-import data_processing.DataProcessing.{getCleanData, getTestMetrics, saveIntoFile}
+import data_processing.DataProcessing.{getCleanData, getTestMetrics, saveIntoFile, getDescriptiveStatistics}
 import org.apache.spark.sql.SparkSession
 
 object Main {
@@ -19,6 +19,10 @@ object Main {
 
     // --- PROCESS DATAS ---
     val cleanedDf = getCleanData(session, rawDf)
+    // ---------------------
+
+    // --- DESCRIPTIVE STATISTICS ---
+    getDescriptiveStatistics(session)
     // ---------------------
 
     // ---- SAVE DATAS ----

@@ -1,6 +1,7 @@
 package data_processing
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 
 object DataProcessing {
 
@@ -241,6 +242,42 @@ object DataProcessing {
       GROUP BY transaction_day_of_week
       ORDER BY transaction_day_of_week
     """).show(false)
+  }
+  def getDescriptiveStatistics(spark: SparkSession): Unit = {
+    println("\n========== Descriptive Statistics ==========")
+    println("\n============ Mean, Median, Count ============")
+
+    val df = spark.sql("SELECT * FROM cleaned_transactions")
+
+    // Get mean, median, counts
+    val statisticsDf = df.select(
+      mean("unit_price").alias("mean_unit_price"),
+      mean("quantity").alias("mean_quantity"),
+      mean("total_amount").alias("mean_total_amount"),
+
+      expr("percentile_approx(unit_price, 0.5)").alias("median_unit_price"),
+      expr("percentile_approx(quantity, 0.5)").alias("median_quantity"),
+      expr("percentile_approx(total_amount, 0.5)").alias("median_total_amount"),
+
+      count("unit_price").alias("count_unit_price"),
+      count("quantity").alias("count_quantity"),
+      count("total_amount").alias("count_total_amount")
+    )
+
+    statisticsDf.show(false)
+
+    println("\n========== Mode ==========")
+    val modeDf = df.groupBy("unit_price", "quantity", "total_amount")
+      .count()
+      .orderBy(desc("count"))
+
+    val unitPriceMode = modeDf.select("unit_price").head().getDouble(0)
+    val quantityMode = modeDf.select("quantity").head().getInt(0)
+    val totalAmountMode = modeDf.select("total_amount").head().getDouble(0)
+
+    println(s"unit_price: $unitPriceMode")
+    println(s"quantity: $quantityMode")
+    println(s"total_amount: $totalAmountMode")
   }
 }
 
