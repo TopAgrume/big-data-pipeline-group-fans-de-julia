@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  namenode: # Master Node -> managing file metatdata / access points
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    environment:
+      - CLUSTER_NAME=hadoop
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "9870:9870"   # Web UI for HDFS
+      - "9000:9000"   # Namenode RPC
+    volumes:
+      - namenode_data:/hadoop/dfs/namenode
+    networks:
+      - hadoop-net
+
+  datanode: # Slave Node -> stores the data
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    environment:
+      - CLUSTER_NAME=hadoop
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - "9864:9864"  # Web UI for datanode
+    volumes:
+      - datanode_data:/hadoop/dfs/datanode
+    networks:
+      - hadoop-net
+
+volumes:
+  namenode_data:
+  datanode_data:
+
+networks:
+  hadoop-net:
+    driver: bridge
+
