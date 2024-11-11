@@ -1,7 +1,10 @@
 .bsp
 
 # FAT CSV FILE
-ecommerce_data_with_trends.csv
+data_ingestion/ecommerce_data_with_trends.csv
+
+# SBT build directories:
+target/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
