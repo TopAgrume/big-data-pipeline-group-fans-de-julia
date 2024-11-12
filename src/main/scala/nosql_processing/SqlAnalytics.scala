@@ -6,6 +6,7 @@ object SqlAnalytics {
   def showSqlAnalytics(spark: SparkSession): Unit = {
     findTopCustomersByTotalSpend(spark)
     purchaseFrequencyByCustomerSegment(spark)
+    identifyTrendsInProductPurchases(spark)
   }
 
   /**
@@ -48,13 +49,13 @@ object SqlAnalytics {
         SELECT
           customer_id,
           customer_type,
-          DATE_TRUNC('month', transaction_timestamp) AS month,
+          transaction_month,
           COUNT(*) AS month_purchases
         FROM cleaned_transactions
         GROUP BY
           customer_id,
           customer_type,
-          DATE_TRUNC('month', transaction_timestamp)
+          transaction_month
       )
       SELECT
         customer_type,
@@ -65,7 +66,7 @@ object SqlAnalytics {
       """).show(false)
 
 
-    println("\n========== Average purchase frequency per customer city per month ==========")
+    println("\n========== Average purchase frequency per customer city per month (descending order) ==========")
 
     spark.sql(
       """
@@ -73,13 +74,13 @@ object SqlAnalytics {
         SELECT
           customer_id,
           city,
-          DATE_TRUNC('month', transaction_timestamp) AS month,
+          transaction_month,
           COUNT(*) AS month_purchases
         FROM cleaned_transactions
         GROUP BY
           customer_id,
           city,
-          DATE_TRUNC('month', transaction_timestamp)
+          transaction_month
       )
       SELECT
         city,
@@ -91,13 +92,80 @@ object SqlAnalytics {
   }
 
   /**
+   * Prints 2 different trends in product purchases over months.
+   *
+   *
    * @param spark The active Spark session.
    * @return Unit, this function only prints the first 20 rows of the Dataframes.
    */
   def identifyTrendsInProductPurchases(spark: SparkSession): Unit = {
+    println("\n========== Evolution of the three categories with max total purchases per month ==========")
+
     spark.sql(
       """
+      WITH monthly_category_sales AS (
+        SELECT
+          DATE_TRUNC('month', transaction_timestamp) AS month,
+          main_category,
+          COUNT(*) AS total_purchases
+        FROM cleaned_transactions
+        GROUP BY
+          month,
+          main_category
+      ),
+      ranked_category_sales AS (
+        SELECT
+          month,
+          main_category,
+          total_purchases,
+          ROW_NUMBER() OVER (PARTITION BY month ORDER BY total_purchases DESC) AS rank
+        FROM monthly_category_sales
+      )
+      SELECT
+        month,
+        main_category,
+        total_purchases
+      FROM ranked_category_sales
+      WHERE rank <= 3
+      ORDER BY month;
+      """).show(false)
 
+
+    println("\n========== Evolution of monthly total revenue compared to previous month per category ==========")
+
+    spark.sql(
+      """
+      WITH monthly_category_revenue AS (
+        SELECT
+          DATE_TRUNC('month', transaction_timestamp) AS month,
+          main_category,
+          SUM(total_amount) AS total_revenue
+        FROM cleaned_transactions
+        GROUP BY
+          month,
+          main_category
+      ),
+      monthly_category_revenue_growth AS (
+        SELECT
+          month,
+          main_category,
+          total_revenue,
+          LAG(total_revenue) OVER (PARTITION BY main_category ORDER BY month) AS previous_month_revenue,
+          (total_revenue - LAG(total_revenue) OVER (PARTITION BY main_category ORDER BY month)) / LAG(total_revenue) OVER (PARTITION BY main_category ORDER BY month) * 100 AS increase_revenue_percentage
+        FROM monthly_category_revenue
+      )
+      SELECT
+        month,
+        main_category,
+        total_revenue,
+        CASE
+          WHEN increase_revenue_percentage = NULL THEN 0
+          ELSE ROUND(increase_revenue_percentage, 1)
+        END AS r_increase_revenue_percentage
+      FROM monthly_category_revenue_growth
+      ORDER BY
+        main_category,
+        month;
       """).show(false)
   }
 }
