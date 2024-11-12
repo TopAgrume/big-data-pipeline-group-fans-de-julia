@@ -4,7 +4,9 @@ ThisBuild / scalaVersion := "2.13.15"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "3.5.3",
-  "org.apache.spark" %% "spark-sql" % "3.5.3"
+  "org.apache.spark" %% "spark-sql" % "3.5.3",
+  "org.scalanlp" %% "breeze" % "2.1.0",
+  "org.scalanlp" %% "breeze-viz" % "2.1.0"
 )
 
 lazy val root = (project in file("."))

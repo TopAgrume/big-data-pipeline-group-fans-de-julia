@@ -1,5 +1,5 @@
 import data_ingestion.DataIngestion
-import data_processing.DataProcessing.{getCleanData, getTestMetrics, saveIntoFile, getDescriptiveStatistics}
+import data_processing.DataProcessing.{getCleanData, getTestMetrics, saveIntoFile, getDescriptiveStatistics, getGraphicStatistics}
 import org.apache.spark.sql.SparkSession
 
 object Main {
@@ -23,6 +23,10 @@ object Main {
 
     // --- DESCRIPTIVE STATISTICS ---
     getDescriptiveStatistics(session)
+    // ---------------------
+
+    // --- PLOT STATISTICS ---
+    getGraphicStatistics(session)
     // ---------------------
 
     // ---- SAVE DATAS ----

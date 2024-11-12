@@ -3,6 +3,10 @@ package data_processing
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 
+
+import breeze.linalg._
+import breeze.plot._
+
 object DataProcessing {
 
   def getCleanData(session: SparkSession, rawDf: DataFrame): DataFrame = {
@@ -12,7 +16,7 @@ object DataProcessing {
     cleanedDf.show(10)
 
     cleanedDf.createOrReplaceTempView("cleaned_transactions")
-    getTestMetrics(session)
+    // getTestMetrics(session)
     cleanedDf
   }
 
@@ -279,5 +283,90 @@ object DataProcessing {
     println(s"quantity: $quantityMode")
     println(s"total_amount: $totalAmountMode")
   }
+
+  def getGraphicStatistics(spark: SparkSession): Unit = {
+    import spark.implicits._
+    import breeze.linalg._
+    import breeze.plot._
+
+    val df = spark.sql("SELECT total_amount, quantity, main_category FROM cleaned_transactions")
+
+    // Distribution of Total Amount
+    val totalAmounts = df.select("total_amount").as[Double].collect()
+    val f1 = Figure()
+    val p1 = f1.subplot(0)
+    p1 += hist(DenseVector(totalAmounts), bins = 100)
+    p1.title = "Total Amount Distribution"
+    p1.xlabel = "Total Amount"
+    p1.ylabel = "Frequency"
+    f1.saveas("fig_total_amount_distribution.png")
+
+    // Quantity vs Total Amount
+    val quantityAmountPairs = df.select("quantity", "total_amount").as[(Int, Double)].collect()
+    val quantities = DenseVector(quantityAmountPairs.map(_._1.toDouble))
+    val amounts = DenseVector(quantityAmountPairs.map(_._2))
+
+    val f2 = Figure()
+    val p2 = f2.subplot(0)
+    p2 += plot(quantities, amounts, '+')
+    p2.title = "Quantity vs Total Amount"
+    p2.xlabel = "Quantity"
+    p2.ylabel = "Total Amount"
+    f2.saveas("fig_quantity_vs_total_amount.png")
+
+    // Total Amount by Category
+    val totalAmountByCategory = df
+      .groupBy("main_category")
+      .agg(org.apache.spark.sql.functions.sum("total_amount").alias("total_amount"))
+      .orderBy(desc("total_amount"))
+      .collect()
+      .map(row => (row.getString(0), row.getDouble(1)))
+
+    val categoryIndices = DenseVector(totalAmountByCategory.indices.map(_.toDouble).toArray)
+    val totalAmountsByCategory = DenseVector(totalAmountByCategory.map(_._2): _*)
+
+    val totalAmountCategoriesLabel = "Total Amount by Category\n" + totalAmountByCategory.zipWithIndex.map {
+        case ((category, _), index) => s"$index: $category"
+      }.grouped(3)
+      .map(_.mkString(", ")).mkString("\n")
+
+    val f3 = Figure()
+    val p3 = f3.subplot(0)
+    for (i <- categoryIndices.data.indices) {
+      p3 += plot(DenseVector(categoryIndices(i), categoryIndices(i)), DenseVector(0.0, totalAmountsByCategory(i)), style = '-')
+    }
+    p3.title = totalAmountCategoriesLabel
+    p3.xlabel = "Category Index"
+    p3.ylabel = "Total Amount"
+    f3.saveas("fig_total_amount_by_category.png")
+
+    // Total Transactions by Category
+    val totalTransactionsByCategory = df
+      .groupBy("main_category")
+      .agg(org.apache.spark.sql.functions.count("total_amount").alias("total_transactions"))
+      .orderBy(desc("total_transactions"))
+      .collect()
+      .map(row => (row.getString(0), row.getLong(1).toDouble))
+
+    val transactionCountsByCategory = DenseVector(totalTransactionsByCategory.map(_._2): _*)
+
+    val totalTransactionCategoriesLabel = "Total Transactions by Category\n" + totalTransactionsByCategory.zipWithIndex.map {
+        case ((category, _), index) => s"$index: $category"
+      }.grouped(3)
+      .map(_.mkString(", ")).mkString("\n")
+
+    val f4 = Figure()
+    val p4 = f4.subplot(0)
+    for (i <- categoryIndices.data.indices) {
+      p4 += plot(DenseVector(categoryIndices(i), categoryIndices(i)), DenseVector(0.0, transactionCountsByCategory(i)), style = '-')
+    }
+    p4.title = totalTransactionCategoriesLabel
+    p4.xlabel = "Category Index"
+    p4.ylabel = "Transaction Count"
+    f4.saveas("fig_total_transactions_by_category.png")
+
+    println("Statistics Graphs Saved...")
+  }
+
 }
 
