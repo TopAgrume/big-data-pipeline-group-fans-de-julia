@@ -16,7 +16,7 @@ object DataProcessing {
     cleanedDf.show(10)
 
     cleanedDf.createOrReplaceTempView("cleaned_transactions")
-    // getTestMetrics(session)
+    getTestMetrics(session)
     cleanedDf
   }
 
